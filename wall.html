@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- 결과 월: 참가자가 혈액형을 탭해 집계하는 대형 화면 + 스태프 패널 -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2a44">
+<meta name="robots" content="noindex">
+<title>결과 월</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .vote { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .vote button {
+    min-height: 120px; border: 0; border-radius: 20px; color: #fff; font-size: 40px; font-weight: 900;
+    cursor: pointer; box-shadow: var(--shadow); transition: transform .06s;
+  }
+  .vote button:active { transform: scale(.95); }
+  .vote .t-A { background: var(--A); } .vote .t-B { background: var(--B); }
+  .vote .t-AB { background: var(--AB); } .vote .t-O { background: var(--O); }
+  .thanks { min-height: 36px; text-align: center; font-weight: 800; font-size: 22px; color: var(--ok); }
+  .big-num { font-size: 56px; font-weight: 900; line-height: 1; color: var(--navy); }
+  .stats td, .stats th { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+  .stats { border-collapse: collapse; width: 100%; font-size: 17px; }
+  @media (max-width: 600px) { .vote { grid-template-columns: repeat(2, 1fr); } .vote button { min-height: 90px; font-size: 32px; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="brand">🕵️ 혈액형 탐정단 · 결과 월</span>
+  <span class="who" id="who"></span>
+  <span><button data-act="staff">⚙︎ 스태프</button></span>
+</header>
+<main id="app"></main>
+<div id="overlay"></div>
+<script src="js/genetics.js"></script>
+<script src="js/store.js"></script>
+<script src="js/wall.js"></script>
+</body>
+</html>
