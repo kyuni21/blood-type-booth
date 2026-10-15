@@ -22,8 +22,16 @@
     { id: 'sim', icon: '🎲', title: '확률 실험실', desc: '가상 아기 1,000명을 태어나게 해 보자' }
   ];
 
-  const RARE_MAX = 0.25; // 이 확률 이하로 태어나면 축하 연출
-  const RARE_TITLES = ['확률을 뚫고 태어난 인재!', '행운의 아기 탄생!', '확률 따위 문제없다!', '기적의 주인공 등장!'];
+  // 확률이 낮을수록 큰 축하. 위에서부터 먼저 맞는 등급을 씀
+  const RARE_TIERS = [
+    { level: 3, max: 0.0625, label: '🌟 레전드 등급', stars: '⭐⭐⭐', confetti: 140, ms: 4600,
+      titles: ['전설의 아기 탄생!!', '이건 진짜 기적이야!!', '확률을 박살 낸 천재!!'] },
+    { level: 2, max: 0.125, label: '💎 슈퍼 레어', stars: '⭐⭐', confetti: 80, ms: 3600,
+      titles: ['슈퍼 레어 아기 등장!', '대박 행운의 아기!', '확률을 뚫고 태어난 영재!'] },
+    { level: 1, max: 0.25, label: '✨ 레어', stars: '⭐', confetti: 40, ms: 2800,
+      titles: ['확률을 뚫고 태어난 인재!', '행운의 아기 탄생!', '확률 따위 문제없다!', '기적의 주인공 등장!'] }
+  ];
+  const rareTier = (p) => RARE_TIERS.find((t) => p <= t.max + 1e-9);
 
   const PUNNETT_POOL =[['AO', 'BO'], ['AO', 'AO'], ['AB', 'OO'], ['AB', 'AO'], ['BO', 'OO'], ['AA', 'BO'], ['AB', 'AB'], ['BO', 'BO']];
   const CYCLE = [null, 'A', 'B', 'AB', 'O'];
@@ -42,7 +50,7 @@
       reason: { my: null, assistant: false, mom: null, dad: null },
       puzzle: newPuzzle(),
       kase: { sel: null, assign: {}, checked: false },
-      sim: { g1: 'AO', g2: 'BO', counts: { A: 0, B: 0, AB: 0, O: 0 }, recent: [] }
+      sim: { g1: 'AO', g2: 'BO', r1: 'Dd', r2: 'Dd', counts: emptyCounts(), recent: [] }
     };
   }
 
@@ -52,6 +60,12 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const shuffle = (arr) => arr.map((v) => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
   const pct = (x) => Math.round(x * 100) + '%';
+  const exactPct = (x) => +(x * 100).toFixed(2) + '%'; // 6.25%, 12.5%처럼 소수까지
+  const emptyCounts = () => G.FULL_TYPES.reduce((o, t) => { o[t] = 0; return o; }, {});
+  const splitType = (t) => ({ abo: t.slice(0, -1), neg: t.slice(-1) === '-' });
+  const fullBadge = (t) => { const s = splitType(t); return `<span class="badge t-${s.abo}">${s.abo}${s.neg ? '−' : '+'}</span>`; };
+  const simTotal = () => G.FULL_TYPES.reduce((s, t) => s + state.sim.counts[t], 0);
+  const fullName = (t) => { const s = splitType(t); return `${s.abo}형 Rh${s.neg ? '−' : '+'}`; };
   const badge = (t) => t ? `<span class="badge t-${t}">${t}형</span>` : '<span class="badge t-none">?</span>';
   const gtLabel = (g) => `${g} (${G.phenotypeOf(g)}형)`;
   const stampCount = () => MISSIONS.filter((m) => state.stamps[m.id]).length;
@@ -67,12 +81,12 @@
   }
 
   function bars(rows) {
-    // rows: [{ type, value(0~1), mark(0~1|undefined), label }]
+    // rows: [{ type, value(0~1), mark(0~1|undefined), label, head(선택), cls(선택) }]
     return `<div class="bars">${rows.map((r) => `
       <div class="bar-row">
-        <div>${badge(r.type)}</div>
+        <div>${r.head || badge(r.type)}</div>
         <div class="bar-track">
-          <div class="bar-fill t-${r.type}" style="width:${(r.value * 100).toFixed(1)}%"></div>
+          <div class="bar-fill t-${r.type} ${r.cls || ''}" style="width:${(r.value * 100).toFixed(1)}%"></div>
           ${r.mark !== undefined ? `<div class="bar-mark" style="left:calc(${(r.mark * 100).toFixed(1)}% - 2px)"></div>` : ''}
         </div>
         <div class="bar-val">${r.label}</div>
@@ -247,31 +261,47 @@
     },
 
     sim() {
-      const M = state.sim, total = M.counts.A + M.counts.B + M.counts.AB + M.counts.O;
-      const dist = G.childPhenotypeDist(M.g1, M.g2);
-      const geneChips = (who) => `<div class="chips">${G.GENOTYPES.map((g) => `<button class="chip ${M[who] === g ? 'on' : ''}" style="font-size:18px" data-act="simParent" data-w="${who}" data-g="${g}">${gtLabel(g)}</button>`).join('')}</div>`;
+      const M = state.sim, total = simTotal();
+      const dist = G.fullDist(M.g1, M.g2, M.r1, M.r2);
+      const possible = G.FULL_TYPES.filter((t) => dist[t] > 0);
+      const rare = possible.filter((t) => rareTier(dist[t])).sort((a, b) => dist[a] - dist[b]);
+      const chipRow = (who, list, label) => `<div class="chips">${list.map((g) => `<button class="chip ${M[who] === g ? 'on' : ''}" style="font-size:18px" data-act="simParent" data-w="${who}" data-g="${g}">${label(g)}</button>`).join('')}</div>`;
+      const rhLabel = (g) => `${g} (Rh${G.rhPhenotypeOf(g) === '+' ? '+' : '−'})`;
+      const parentCard = (title, aboKey, rhKey) => `
+        <div class="card"><h3>${title}</h3>
+          <div class="muted" style="font-size:15px;margin-bottom:6px">ABO 유전자형</div>${chipRow(aboKey, G.GENOTYPES, gtLabel)}
+          <div class="muted" style="font-size:15px;margin:14px 0 6px">Rh 유전자형 · D가 우성, d가 열성</div>${chipRow(rhKey, G.RH_GENOTYPES, rhLabel)}
+        </div>`;
       return `
         ${backBar()}
         <h2>🎲 미션 5 · 확률 실험실</h2>
-        <p>엄마와 아빠는 각자 유전자 두 개 중 <b>하나를 무작위로</b> 아기에게 물려줘요. 아기가 많이 태어나면 어떻게 될까요?</p>
+        <p>엄마와 아빠는 ABO 유전자와 Rh 유전자를 각각 두 개씩 갖고 있고, 그중 <b>하나씩을 무작위로</b> 아기에게 물려줘요. 두 유전자는 따로따로 전해지니 확률은 <b>곱하기</b>!</p>
         <div class="grid-2">
-          <div class="card"><h3>👩 엄마 유전자형</h3>${geneChips('g1')}</div>
-          <div class="card"><h3>👨 아빠 유전자형</h3>${geneChips('g2')}</div>
+          ${parentCard('👩 엄마', 'g1', 'r1')}
+          ${parentCard('👨 아빠', 'g2', 'r2')}
         </div>
         <div class="card">
           <h3>태어난 아기 <span style="font-size:28px">${total.toLocaleString()}</span>명</h3>
-          <div class="dots">${M.recent.map((t) => `<span class="dot t-${t}"></span>`).join('')}</div>
-          ${bars(G.PHENOTYPES.map((p) => ({ type: p, value: total ? M.counts[p] / total : 0, mark: dist[p], label: `${total ? pct(M.counts[p] / total) : '–'} <span class="muted" style="font-size:14px">/ 이론 ${pct(dist[p])}</span>` })))}
-          <p class="legend">막대 = 실제로 태어난 비율<span class="mk"></span>검은 선 = 펀넷 사각형으로 계산한 확률</p>
+          <div class="dots">${M.recent.map((t) => { const s = splitType(t); return `<span class="dot t-${s.abo} ${s.neg ? 'neg' : ''}"></span>`; }).join('')}</div>
+          ${bars(possible.map((t) => ({
+            type: splitType(t).abo, cls: splitType(t).neg ? 'neg' : '', head: fullBadge(t),
+            value: total ? M.counts[t] / total : 0, mark: dist[t],
+            label: `${total ? (M.counts[t] / total * 100).toFixed(1) + '%' : '–'} <span class="muted" style="font-size:14px">/ 이론 ${exactPct(dist[t])}</span>`
+          })))}
+          <p class="legend">막대 = 실제로 태어난 비율<span class="mk"></span>검은 선 = 계산한 확률 · 줄무늬 막대와 가운데 흰 점 = Rh−</p>
+          <p>${rare.length
+            ? `이 부부의 희귀 아기 ${rare.map((t) => `${fullBadge(t)} ${exactPct(dist[t])} ${rareTier(dist[t]).stars}`).join(' · ')}`
+            : '<span class="muted">이 부부에게서는 확률 25% 이하인 희귀 아기가 태어나지 않아요. 유전자형을 바꿔 보세요!</span>'}</p>
           <div class="actions">
             ${[1, 10, 100, 1000].map((n) => `<button class="btn ${n === 1000 ? 'primary' : n === 1 ? 'gold' : ''}" data-act="simRun" data-n="${n}">${n === 1 ? '👶 ' : ''}+${n.toLocaleString()}명</button>`).join('')}
             <button class="btn small" data-act="simReset">다시</button>
             <button class="btn small" data-act="soundToggle">${S.soundOn() ? '🔊 효과음 켜짐' : '🔇 효과음 꺼짐'}</button>
           </div>
-          <p class="muted" style="font-size:15px">👶 한 명씩 태어나게 해 보세요. 확률 ${pct(RARE_MAX)} 이하로 태어나는 아기가 나오면 깜짝 축하가 있어요!</p>
+          <p class="muted" style="font-size:15px">👶 한 명씩 태어나게 해 보세요. 희귀할수록 축하가 커져요! ${RARE_TIERS.slice().reverse().map((t) => `${t.stars} ${exactPct(t.max)} 이하`).join(' · ')}</p>
           ${total >= 100 ? '<div class="feedback ok">아기가 많아질수록 막대가 검은 선에 가까워져요. 이것이 <b>큰 수의 법칙</b>! 확률은 "많이 반복했을 때의 비율"이에요.</div>' : total > 0 ? '<p class="muted">몇 명만 태어나면 들쭉날쭉해요. 100명 이상 태어나게 해 보세요.</p>' : ''}
         </div>
         <div class="card tip">🫘 책상 위 <b>구슬 주머니</b>로도 해 보세요. 엄마 주머니, 아빠 주머니에서 구슬을 하나씩 뽑으면 아기 한 명이에요.</div>
+        <div class="card tip">🇰🇷 실제로 우리나라는 Rh−인 사람이 0.1~0.3%뿐이라 거의 모두 DD예요. Dd끼리 만난 부부는 실험실에서나 쉽게 볼 수 있는 조합이에요.</div>
         ${state.stamps.sim ? '<div class="actions end"><button class="btn primary" data-act="go" data-to="map">수사 지도로</button></div>' : ''}`;
     },
 
@@ -567,27 +597,28 @@
     simParent(d) {
       const M = state.sim;
       M[d.w] = d.g;
-      M.counts = { A: 0, B: 0, AB: 0, O: 0 };
+      M.counts = emptyCounts();
       M.recent = [];
       render();
     },
     simRun(d) {
       const M = state.sim, n = +d.n;
       for (let i = 0; i < n; i++) {
-        const c = G.simulate(M.g1, M.g2, 1);
-        const t = G.PHENOTYPES.find((p) => c[p]);
+        const t = G.birth(M.g1, M.g2, M.r1, M.r2);
         M.counts[t]++;
         M.recent.push(t);
       }
       M.recent = M.recent.slice(-60);
-      if (M.counts.A + M.counts.B + M.counts.AB + M.counts.O >= 100) state.stamps.sim = true;
+      if (simTotal() >= 100) state.stamps.sim = true;
       render();
       // 한 명씩 태어날 때만 축하 (한꺼번에 태어나면 매번 울려서 시끄러움)
-      const p = G.childPhenotypeDist(M.g1, M.g2)[M.recent[M.recent.length - 1]];
-      if (n === 1 && p <= RARE_MAX) celebrate(M.recent[M.recent.length - 1], p);
+      const last = M.recent[M.recent.length - 1];
+      const p = G.fullDist(M.g1, M.g2, M.r1, M.r2)[last];
+      const tier = rareTier(p);
+      if (n === 1 && tier) celebrate(last, p, tier);
     },
     soundToggle() { S.setSound(!S.soundOn()); render(); },
-    simReset() { state.sim.counts = { A: 0, B: 0, AB: 0, O: 0 }; state.sim.recent = []; render(); },
+    simReset() { state.sim.counts = emptyCounts(); state.sim.recent = []; render(); },
 
     reset() { state = fresh(); go('home'); },
     homeConfirm() {
@@ -599,47 +630,64 @@
   // ---------- 축하 연출 (효과음 + 꽃가루) ----------
   let audioCtx = null, fxTimer = null;
 
-  // 도-미-솔-도 팡파르. 소리 파일 없이 합성해서 오프라인에서도 동작
-  function fanfare() {
+  // 등급별 팡파르. 소리 파일 없이 합성해서 오프라인에서도 동작
+  const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5, E6 = 1318.5, G6 = 1568, C7 = 2093;
+  const FANFARES = {
+    1: { notes: [C5, E5, G5, C6], step: 0.11 },
+    2: { notes: [C5, E5, G5, C6, E6, G6], step: 0.1 },
+    3: { notes: [C5, E5, G5, C6, E5, G5, C6, E6, G6, C7], step: 0.085, chord: [C6, E6, G6, C7] }
+  };
+
+  function tone(freq, start, len, vol) {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + len);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + len + 0.05);
+  }
+
+  function fanfare(level) {
     if (!S.soundOn()) return;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-        const t = audioCtx.currentTime + i * 0.11, len = i === 3 ? 0.6 : 0.18;
-        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start(t);
-        osc.stop(t + len + 0.05);
+      const f = FANFARES[level], now = audioCtx.currentTime;
+      f.notes.forEach((freq, i) => {
+        const last = i === f.notes.length - 1 && !f.chord;
+        tone(freq, now + i * f.step, last ? 0.7 : 0.18, 0.22);
       });
+      // 레전드는 마지막에 화음을 길게 울림
+      if (f.chord) f.chord.forEach((freq) => tone(freq, now + f.notes.length * f.step, 1.4, 0.12));
     } catch (e) { /* 소리를 못 내는 환경이면 애니메이션만 */ }
   }
 
-  function celebrate(type, p) {
+  function celebrate(type, p, tier) {
     const colors = ['var(--A)', 'var(--B)', 'var(--AB)', 'var(--O)', 'var(--gold)'];
-    const confetti = Array.from({ length: 40 }, () =>
-      `<span class="confetto" style="left:${Math.random() * 100}%;background:${pick(colors)};animation-duration:${1.6 + Math.random() * 1.2}s;animation-delay:${Math.random() * 0.3}s"></span>`).join('');
+    const confetti = Array.from({ length: tier.confetti }, (_, i) => {
+      const star = tier.level === 3 && i % 5 === 0;
+      return `<span class="confetto ${star ? 'star' : ''}" style="left:${Math.random() * 100}%;${star ? '' : `background:${pick(colors)};`}animation-duration:${1.6 + Math.random() * 1.6}s;animation-delay:${Math.random() * (tier.level * 0.4)}s">${star ? '⭐' : ''}</span>`;
+    }).join('');
     let fx = $('#fx');
     if (!fx) {
       fx = document.createElement('div');
       fx.id = 'fx';
-      fx.className = 'fx';
       document.body.appendChild(fx);
     }
-    fx.innerHTML = `${confetti}
+    fx.className = `fx tier-${tier.level}`;
+    fx.innerHTML = `${tier.level >= 2 ? '<div class="flash"></div>' : ''}${confetti}
       <div class="burst">
+        <div class="tier-label">${tier.label} ${tier.stars}</div>
         <div class="baby-pop">👶</div>
-        <div class="big">${pick(RARE_TITLES)}</div>
-        <div>${badge(type)} <b>${pct(p)}</b> 확률, ${Math.round(1 / p)}명 중 1명꼴로 태어났어요!</div>
+        <div class="big">${pick(tier.titles)}</div>
+        <div>${fullBadge(type)} ${fullName(type)} · <b>${exactPct(p)}</b> 확률, ${Math.round(1 / p)}명 중 1명꼴로 태어났어요!</div>
       </div>`;
-    fanfare();
+    fanfare(tier.level);
     clearTimeout(fxTimer);
-    fxTimer = setTimeout(() => { fx.innerHTML = ''; }, 2800);
+    fxTimer = setTimeout(() => { fx.innerHTML = ''; }, tier.ms);
   }
 
   // ---------- 렌더링 ----------

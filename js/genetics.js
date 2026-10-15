@@ -110,6 +110,41 @@
     return counts;
   }
 
+  // ---------- Rh (D 우성, d 열성) ----------
+  var RH_GENOTYPES = ['DD', 'Dd', 'dd'];
+  var FULL_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  function rhPhenotypeOf(g) {
+    return g.indexOf('D') >= 0 ? '+' : '-';
+  }
+
+  // 자녀 Rh 표현형 분포 { '+', '-' }. 'D' < 'd' 이므로 정렬하면 'Dd'로 정규화됨
+  function rhDist(g1, g2) {
+    var out = { '+': 0, '-': 0 };
+    g1.split('').forEach(function (a) {
+      g2.split('').forEach(function (b) { out[rhPhenotypeOf(norm(a, b))] += 0.25; });
+    });
+    return out;
+  }
+
+  // ABO와 Rh는 서로 독립 → 확률을 곱함. 키는 'A+', 'O-' 형식
+  function fullDist(abo1, abo2, rh1, rh2) {
+    var abo = childPhenotypeDist(abo1, abo2), rh = rhDist(rh1, rh2), out = {};
+    FULL_TYPES.forEach(function (t) {
+      out[t] = abo[t.slice(0, -1)] * rh[t.slice(-1)];
+    });
+    return out;
+  }
+
+  // 아기 한 명 출생 → 'A+' 형식
+  function birth(abo1, abo2, rh1, rh2, rand) {
+    rand = rand || Math.random;
+    var pickAllele = function (g) { return g[rand() < 0.5 ? 0 : 1]; };
+    var abo = phenotypeOf(norm(pickAllele(abo1), pickAllele(abo2)));
+    var rh = rhPhenotypeOf(norm(pickAllele(rh1), pickAllele(rh2)));
+    return abo + rh;
+  }
+
   // 응집 반응 → 혈액형. antiA·antiB·antiD 는 응집 여부(boolean)
   function bloodTypeFromReactions(r) {
     var abo = r.antiA && r.antiB ? 'AB' : r.antiA ? 'A' : r.antiB ? 'B' : 'O';
@@ -158,6 +193,12 @@
     myGenotypeCandidates: myGenotypeCandidates,
     genotypeWeights: genotypeWeights,
     simulate: simulate,
+    RH_GENOTYPES: RH_GENOTYPES,
+    FULL_TYPES: FULL_TYPES,
+    rhPhenotypeOf: rhPhenotypeOf,
+    rhDist: rhDist,
+    fullDist: fullDist,
+    birth: birth,
     bloodTypeFromReactions: bloodTypeFromReactions,
     canBeChildOf: canBeChildOf,
     solveCase: solveCase
