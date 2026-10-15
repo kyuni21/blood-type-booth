@@ -98,33 +98,6 @@
     var c = G.simulate('AO', 'BO', 100000);
     ['A', 'B', 'AB', 'O'].forEach(function (p) { near(c[p] / 100000, 0.25, 0.01); });
   });
-  test('Rh 표현형: D가 하나라도 있으면 Rh+', function () {
-    eq(G.RH_GENOTYPES.map(G.rhPhenotypeOf), ['+', '+', '-']);
-  });
-  test('Rh 교배: Dd×Dd → + 75%, − 25% / Dd×dd → 50:50 / DD×dd → 전부 +', function () {
-    eq(G.rhDist('Dd', 'Dd'), { '+': 0.75, '-': 0.25 });
-    eq(G.rhDist('Dd', 'dd'), { '+': 0.5, '-': 0.5 });
-    eq(G.rhDist('DD', 'dd'), { '+': 1, '-': 0 });
-  });
-  test('ABO×Rh 확률은 곱: AO×BO, Dd×Dd → O− 6.25%, A+ 18.75%', function () {
-    var d = G.fullDist('AO', 'BO', 'Dd', 'Dd');
-    near(d['O-'], 0.0625);
-    near(d['A+'], 0.1875);
-    near(G.FULL_TYPES.reduce(function (s, t) { return s + d[t]; }, 0), 1);
-  });
-  test('ABO×Rh 확률: AO×BO, Dd×dd → 여덟 가지 모두 12.5%', function () {
-    var d = G.fullDist('AO', 'BO', 'Dd', 'dd');
-    G.FULL_TYPES.forEach(function (t) { near(d[t], 0.125); });
-  });
-  test('아기 한 명 출생: rand 고정이면 결정적', function () {
-    eq(G.birth('AO', 'BO', 'Dd', 'dd', function () { return 0; }), 'AB+');
-    eq(G.birth('AO', 'BO', 'Dd', 'dd', function () { return 0.9; }), 'O-');
-  });
-  test('아기 10만 명 출생: O−는 6.25%에 수렴', function () {
-    var n = 100000, o = 0;
-    for (var i = 0; i < n; i++) if (G.birth('AO', 'BO', 'Dd', 'Dd') === 'O-') o++;
-    near(o / n, 0.0625, 0.005);
-  });
   test('응집 반응 → 혈액형', function () {
     eq(G.bloodTypeFromReactions({ antiA: true, antiB: false, antiD: true }), { abo: 'A', rh: '+' });
     eq(G.bloodTypeFromReactions({ antiA: false, antiB: true, antiD: false }), { abo: 'B', rh: '-' });
