@@ -1,6 +1,6 @@
 {
-  "name": "혈액형 탐정단",
-  "short_name": "혈액형탐정단",
+  "name": "혈액형 유전 탐구소",
+  "short_name": "혈액형탐구소",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

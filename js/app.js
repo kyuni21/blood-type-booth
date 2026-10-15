@@ -85,7 +85,7 @@
       return `
         <section class="hero">
           <div class="emoji">🕵️🩸</div>
-          <h1>혈액형 탐정단</h1>
+          <h1>혈액형 유전 탐구소</h1>
           <p class="muted">혈액형 속에 숨은 유전 법칙을 수사하라!</p>
         </section>
         <div class="card center">
