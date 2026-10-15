@@ -47,20 +47,20 @@
     const c = counts(state.view);
     const total = G.PHENOTYPES.reduce((s, p) => s + c[p], 0);
     return `
-      <h1 class="center">오늘 탐정들의 혈액형은?</h1>
-      <p class="center muted">수사를 마쳤다면 내 혈액형을 눌러 주세요! (모르면 안 눌러도 돼요)</p>
+      <h1 class="center">오늘 연구원들의 혈액형은?</h1>
+      <p class="center muted">탐구를 마쳤다면 내 혈액형을 눌러 주세요! (모르면 안 눌러도 돼요)</p>
       <div class="vote">${G.PHENOTYPES.map((p) => `<button class="t-${p}" data-act="vote" data-p="${p}">${p}형</button>`).join('')}</div>
       <div class="thanks">${state.last ? `${state.last}형 한 표, 고마워요! 🎉 <button class="btn small" data-act="undo" style="margin-left:8px">잘못 눌렀어요</button>` : ''}</div>
       <div class="card">
         <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px">
-          <div><div class="muted">${state.view === 'today' ? '오늘' : '3일 누적'} 참가 탐정</div><div class="big-num">${total}<span style="font-size:24px">명</span></div></div>
+          <div><div class="muted">${state.view === 'today' ? '오늘' : '3일 누적'} 참가 연구원</div><div class="big-num">${total}<span style="font-size:24px">명</span></div></div>
           <div class="tabs" style="margin-left:auto">
             <button class="tab ${state.view === 'today' ? 'on' : ''}" data-act="view" data-v="today">오늘</button>
             <button class="tab ${state.view === 'all' ? 'on' : ''}" data-act="view" data-v="all">전체 누적</button>
           </div>
         </div>
         ${bars(c, total)}
-        <p class="legend">막대 = 우리 부스 탐정들<span class="mk"></span>검은 선 = 우리나라 평균 (A 34% · O 28% · B 27% · AB 11%)</p>
+        <p class="legend">막대 = 우리 부스 연구원들<span class="mk"></span>검은 선 = 우리나라 평균 (A 34% · O 28% · B 27% · AB 11%)</p>
         ${insight(c, total)}
       </div>`;
   }
@@ -98,7 +98,7 @@
       </div>
       <div class="card">
         <h3>사전·사후 퀴즈 효과 (이 기기)</h3>
-        <p>최종 시험까지 마친 탐정 <b>${q.done}명</b> · 평균 점수 <b>${avg(q.pre)}점 → ${avg(q.post)}점</b> (3점 만점)</p>
+        <p>최종 시험까지 마친 연구원 <b>${q.done}명</b> · 평균 점수 <b>${avg(q.pre)}점 → ${avg(q.post)}점</b> (3점 만점)</p>
         <table class="stats"><tr><th>문항</th><th>사전 정답률</th><th>사후 정답률</th></tr>
           ${[0, 1, 2].map((i) => `<tr><td>${i + 1}번</td><td>${rate(q.pre[i])}</td><td>${rate(q.post[i])}</td></tr>`).join('')}
         </table>

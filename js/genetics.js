@@ -116,7 +116,7 @@
     return { abo: abo, rh: r.antiD ? '+' : '-' };
   }
 
-  // 바뀐 아기 사건: 아기가 A·B·AB·O 하나씩이면 짝이 하나로 정해지도록 설계한 부부
+  // 바뀐 아기 찾기: 아기가 A·B·AB·O 하나씩이면 짝이 하나로 정해지도록 설계한 부부
   var COUPLES = [
     { id: 'kim', name: '김씨 부부', parents: ['O', 'O'] },
     { id: 'lee', name: '이씨 부부', parents: ['AB', 'O'] },

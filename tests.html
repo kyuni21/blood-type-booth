@@ -104,7 +104,7 @@
     eq(G.bloodTypeFromReactions({ antiA: true, antiB: true, antiD: true }), { abo: 'AB', rh: '+' });
     eq(G.bloodTypeFromReactions({ antiA: false, antiB: false, antiD: false }), { abo: 'O', rh: '-' });
   });
-  test('바뀐 아기 사건: A·B·AB·O 하나씩이면 해가 하나', function () {
+  test('바뀐 아기 찾기: A·B·AB·O 하나씩이면 해가 하나', function () {
     // 아기 순서를 어떻게 섞어도 해는 정확히 하나
     var orders = [['A', 'B', 'AB', 'O'], ['O', 'AB', 'B', 'A'], ['B', 'O', 'A', 'AB']];
     orders.forEach(function (babies) {
@@ -114,7 +114,7 @@
       eq(assigned, ['O', 'A', 'B', 'AB']); // 김 O, 이 A, 박 B, 최 AB
     });
   });
-  test('바뀐 아기 사건: 판정 실수로 같은 혈액형이 겹치면 해 없음', function () {
+  test('바뀐 아기 찾기: 판정 실수로 같은 혈액형이 겹치면 해 없음', function () {
     eq(G.solveCase(['A', 'A', 'AB', 'O']).length, 0);
   });
 

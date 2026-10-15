@@ -16,9 +16,9 @@
 
   const MISSIONS = [
     { id: 'lab', icon: '🔬', title: '판정 랩', desc: '모의 혈액으로 아기 4명의 혈액형을 판정하라' },
-    { id: 'reason', icon: '🧬', title: '추리 룸', desc: '내 혈액형 속 유전자는 AA일까, AO일까?' },
+    { id: 'reason', icon: '🧬', title: '유전자 추론', desc: '내 혈액형 속 유전자는 AA일까, AO일까?' },
     { id: 'puzzle', icon: '🧩', title: '가족 퍼즐', desc: '펀넷 사각형으로 아기 혈액형 예측하기' },
-    { id: 'case', icon: '🚨', title: '사건 파일', desc: '산부인과에서 바뀐 아기를 찾아라' },
+    { id: 'case', icon: '🍼', title: '바뀐 아기 찾기', desc: '혈액형으로 아기의 진짜 부모를 찾아요' },
     { id: 'sim', icon: '🎲', title: '확률 실험실', desc: '가상 아기 1,000명을 태어나게 해 보자' }
   ];
 
@@ -63,7 +63,7 @@
   }
 
   function backBar() {
-    return `<div class="actions" style="margin-top:0"><button class="btn small" data-act="go" data-to="map">← 수사 지도</button></div>`;
+    return `<div class="actions" style="margin-top:0"><button class="btn small" data-act="go" data-to="map">← 탐구 지도</button></div>`;
   }
 
   function bars(rows) {
@@ -84,16 +84,16 @@
     home() {
       return `
         <section class="hero">
-          <div class="emoji">🕵️🩸</div>
+          <div class="emoji">🧪🩸</div>
           <h1>혈액형 유전 탐구소</h1>
-          <p class="muted">혈액형 속에 숨은 유전 법칙을 수사하라!</p>
+          <p class="muted">혈액형 속에 숨은 유전 법칙을 탐구해요!</p>
         </section>
         <div class="card center">
-          <h3>탐정 이름을 정해 주세요</h3>
+          <h3>연구원 이름을 정해 주세요</h3>
           <p class="muted">진짜 이름 말고 별명도 좋아요. 이름은 저장되지 않아요.</p>
-          <input id="name" class="name-input" maxlength="10" placeholder="예) 셜록 홈즈" autocomplete="off">
+          <input id="name" class="name-input" maxlength="10" placeholder="예) 꼬마 멘델" autocomplete="off">
           <div class="actions" style="justify-content:center">
-            <button class="btn primary" data-act="start">수사 시작 →</button>
+            <button class="btn primary" data-act="start">탐구 시작 →</button>
           </div>
         </div>
         <p class="center"><a href="wall.html" class="muted" style="font-size:14px">스태프 · 결과 월</a></p>`;
@@ -105,7 +105,7 @@
     map() {
       const n = stampCount();
       return `
-        <h2>${esc(state.name)} 탐정의 수사 지도</h2>
+        <h2>${esc(state.name)} 연구원의 탐구 지도</h2>
         <p class="muted">순서대로 해도 되고, 원하는 미션부터 해도 돼요. 완료한 미션 ${n} / ${MISSIONS.length}</p>
         <div class="mission-grid">
           ${MISSIONS.map((m, i) => `
@@ -113,7 +113,7 @@
               <div class="num">미션 ${i + 1}</div>
               <div class="title">${m.icon} ${m.title}</div>
               <div class="desc">${m.desc}</div>
-              ${state.stamps[m.id] ? '<div class="stamp">해결!</div>' : ''}
+              ${state.stamps[m.id] ? '<div class="stamp">완료!</div>' : ''}
             </button>`).join('')}
         </div>
         <div class="card tip center">
@@ -178,11 +178,11 @@
           </div>
           ${base.length > 1 ? `<div class="card tip">💡 <b>알고 있나요?</b> 우리나라 ${R.my}형인 사람 10명 중 약 <b>${Math.round(G.genotypeWeights(R.my)[R.my + 'O'] * 10)}명</b>은 ${R.my}O예요. O 유전자를 가진 사람이 생각보다 많아요!</div>` : ''}
           ${R.assistant ? '' : parentSection(R, cands, usingParents)}
-          <div class="actions end"><button class="btn primary" data-act="reasonDone">추리 완료</button></div>`;
+          <div class="actions end"><button class="btn primary" data-act="reasonDone">추론 완료</button></div>`;
       }
       return `
         ${backBar()}
-        <h2>🧬 미션 2 · 추리 룸</h2>
+        <h2>🧬 미션 2 · 유전자 추론</h2>
         <p>혈액형은 엄마와 아빠에게서 받은 <b>유전자 두 개</b>로 정해져요. 유전자는 A, B, O 세 종류예요.</p>
         <div class="card">
           <h3>내 혈액형은?</h3>
@@ -190,7 +190,7 @@
             ${G.PHENOTYPES.map((p) => `<button class="chip t-${p} ${R.my === p && !R.assistant ? 'on' : ''}" data-act="reasonMy" data-p="${p}">${p}형</button>`).join('')}
             <button class="chip ${R.assistant ? 'on' : ''}" style="font-size:18px" data-act="reasonUnknown">몰라요</button>
           </div>
-          ${R.assistant ? '<p class="muted">괜찮아요! 오늘은 A형 조수 "혈액이"의 유전자를 추리해 봐요.</p>' : ''}
+          ${R.assistant ? '<p class="muted">괜찮아요! 오늘은 A형 조수 "혈액이"의 유전자를 추론해 봐요.</p>' : ''}
         </div>
         ${body}`;
     },
@@ -205,8 +205,8 @@
     case() {
       const types = labTypes();
       if (!state.stamps.lab) {
-        return `${backBar()}<h2>🚨 미션 4 · 사건 파일</h2>
-          <div class="card warn"><h3>증거가 필요해요!</h3>
+        return `${backBar()}<h2>🍼 미션 4 · 바뀐 아기 찾기</h2>
+          <div class="card warn"><h3>판정 결과가 필요해요!</h3>
           <p>먼저 판정 랩에서 아기 4명의 혈액형을 판정해 주세요.</p>
           <div class="actions"><button class="btn primary" data-act="go" data-to="lab">판정 랩으로 가기</button>
           <button class="btn small" data-act="caseExample">예시 결과로 진행</button></div></div>`;
@@ -218,10 +218,10 @@
       const allRight = K.checked && G.COUPLES.every((c) => G.canBeChildOf(c, types[K.assign[c.id]]));
       return `
         ${backBar()}
-        <h2>🚨 미션 4 · 사건 파일</h2>
+        <h2>🍼 미션 4 · 바뀐 아기 찾기</h2>
         <div class="card tip">
-          <b>사건 개요</b> 새벽에 신생아실 아기들의 이름표가 모두 떨어졌다!
-          판정 랩에서 알아낸 혈액형을 증거로 아기를 부모에게 돌려보내자.
+          <b>상황</b> 새벽에 신생아실 아기들의 이름표가 모두 떨어졌다!
+          판정 랩에서 알아낸 혈액형을 근거로 아기를 부모에게 돌려보내자.
           <br><span class="muted">아기를 누른 다음 부부 카드를 누르세요. 힌트는 가능한 혈액형이 딱 하나뿐인 부부부터!</span>
         </div>
         ${solvable ? '' : '<div class="feedback bad">판정 결과로는 짝이 맞지 않아요. 같은 혈액형이 두 명 있지 않나요? 판정 랩에서 다시 확인해 보세요.</div>'}
@@ -241,9 +241,9 @@
             </button>`;
           }).join('')}
         </div>
-        ${allRight ? `<div class="feedback ok">🎉 사건 해결! 모든 아기가 부모 품으로 돌아갔어요.</div>
-          <div class="actions end"><button class="btn primary" data-act="go" data-to="map">수사 지도로</button></div>`
-          : `<div class="actions end"><button class="btn primary" data-act="caseCheck" ${allAssigned ? '' : 'disabled'}>판결 내리기</button></div>`}`;
+        ${allRight ? `<div class="feedback ok">🎉 탐구 성공! 모든 아기가 부모 품으로 돌아갔어요.</div>
+          <div class="actions end"><button class="btn primary" data-act="go" data-to="map">탐구 지도로</button></div>`
+          : `<div class="actions end"><button class="btn primary" data-act="caseCheck" ${allAssigned ? '' : 'disabled'}>결과 확인하기</button></div>`}`;
     },
 
     sim() {
@@ -272,7 +272,7 @@
           ${total >= 100 ? '<div class="feedback ok">아기가 많아질수록 막대가 검은 선에 가까워져요. 이것이 <b>큰 수의 법칙</b>! 확률은 "많이 반복했을 때의 비율"이에요.</div>' : total > 0 ? '<p class="muted">몇 명만 태어나면 들쭉날쭉해요. 100명 이상 태어나게 해 보세요.</p>' : ''}
         </div>
         <div class="card tip">🫘 책상 위 <b>구슬 주머니</b>로도 해 보세요. 엄마 주머니, 아빠 주머니에서 구슬을 하나씩 뽑으면 아기 한 명이에요.</div>
-        ${state.stamps.sim ? '<div class="actions end"><button class="btn primary" data-act="go" data-to="map">수사 지도로</button></div>' : ''}`;
+        ${state.stamps.sim ? '<div class="actions end"><button class="btn primary" data-act="go" data-to="map">탐구 지도로</button></div>' : ''}`;
     },
 
     cert() {
@@ -282,9 +282,9 @@
       return `
         <div class="certificate">
           <div style="font-size:56px">🏅</div>
-          <div class="muted">혈액형 유전 수사 인증서</div>
-          <div class="name">${esc(state.name)} 탐정</div>
-          <p>해결한 미션 <b>${n} / ${MISSIONS.length}</b> · 퀴즈 <b>${preScore}점 → ${postScore}점</b></p>
+          <div class="muted">혈액형 유전 탐구 인증서</div>
+          <div class="name">${esc(state.name)} 연구원</div>
+          <p>완료한 미션 <b>${n} / ${MISSIONS.length}</b> · 퀴즈 <b>${preScore}점 → ${postScore}점</b></p>
           <p class="muted">이 화면을 스태프에게 보여 주고 스티커를 받으세요!<br>나가는 길에 결과 월에서 내 혈액형도 눌러 주세요.</p>
         </div>
         <div class="card">
@@ -303,10 +303,10 @@
             <p><b>cis-AB형</b> 하나의 염색체에 A와 B 성질이 함께 들어 있는 드문 유전자예요. 그래서 부모 한 명이 A와 B를 한꺼번에 물려줄 수 있어요. 우리나라와 일본에서 비교적 많이 보고돼요.</p>
             <p><b>봄베이형</b> A·B 응집원을 만드는 바탕 물질(H 항원)이 없어서 유전자는 A나 B인데도 검사하면 O형처럼 나와요.</p>
             <p class="muted">그래서 과학자들은 "드문 조합"을 만나면 바로 결론 내리지 않고 판정 오차, 희귀 유전자 같은 다른 가능성부터 조사해요. 법칙에도 예외가 있다는 것, 그게 과학이에요.</p>
-          </div>` : `<div class="card center muted">🔒 미션 5개를 모두 해결하면 히든 파일이 열려요.</div>`}
+          </div>` : `<div class="card center muted">🔒 미션 5개를 모두 완료하면 히든 파일이 열려요.</div>`}
         <div class="actions" style="justify-content:center">
-          <button class="btn" data-act="go" data-to="map">수사 지도로</button>
-          <button class="btn primary" data-act="reset">다음 탐정에게 넘기기</button>
+          <button class="btn" data-act="go" data-to="map">탐구 지도로</button>
+          <button class="btn primary" data-act="reset">다음 연구원에게 넘기기</button>
         </div>`;
     }
   };
@@ -317,8 +317,8 @@
     const ready = ans.every((v) => v !== null);
     return `
       ${phase === 'post' ? backBar() : ''}
-      <h2>${phase === 'pre' ? '📝 수사 전 실력 점검' : '🏅 최종 시험'}</h2>
-      <p class="muted">${phase === 'pre' ? '맞으면 O, 틀리면 X! 정답은 수사가 끝나면 알려 줄게요.' : '처음에 풀었던 문제예요. 이번엔 맞힐 수 있을까요?'}</p>
+      <h2>${phase === 'pre' ? '📝 탐구 전 실력 점검' : '🏅 최종 시험'}</h2>
+      <p class="muted">${phase === 'pre' ? '맞으면 O, 틀리면 X! 정답은 탐구가 끝나면 알려 줄게요.' : '처음에 풀었던 문제예요. 이번엔 맞힐 수 있을까요?'}</p>
       <div class="card">
         ${QUIZ.map((q, i) => `
           <div class="quiz-q">
@@ -374,7 +374,7 @@
       if (!cands.length) {
         result = `<div class="feedback bad" style="color:var(--ink);background:#fff3f0">이 조합은 아주 <b>드문 조합</b>이에요. 판정 오차, 기억이 다른 경우, cis-AB형이나 봄베이형 같은 희귀 혈액형 등 여러 이유가 있을 수 있어요. 미션을 모두 마치면 히든 파일에서 자세히 알려 줄게요!</div>`;
       } else if (cands.length === 1 && G.genotypesOf(R.my).length > 1) {
-        result = `<div class="feedback ok">수사 성공! 부모님 혈액형으로 보면 ${R.assistant ? '' : '내'} 유전자형은 <b>${cands[0]}</b>(으)로 좁혀져요.</div>`;
+        result = `<div class="feedback ok">추론 성공! 부모님 혈액형으로 보면 ${R.assistant ? '' : '내'} 유전자형은 <b>${cands[0]}</b>(으)로 좁혀져요.</div>`;
       } else {
         result = `<p class="muted">부모님 혈액형만으로는 아직 하나로 정할 수 없어요.</p>`;
       }
@@ -456,7 +456,7 @@
     const ok = P.checked && P.sel.slice().sort().join() === prob.ans.slice().sort().join();
     return `
       <div class="card">
-        <h3>🔍 거꾸로 추리하기</h3>
+        <h3>🔍 거꾸로 추론하기</h3>
         <p style="font-size:22px">엄마는 ${badge(prob.mom)}, 아기는 ${badge(prob.child)}예요.<br>아빠가 될 수 있는 혈액형을 <b>모두</b> 고르세요.</p>
         <div class="chips">${G.PHENOTYPES.map(chip).join('')}</div>
         <p class="muted" style="font-size:15px">힌트 · 아기는 엄마에게서 유전자 하나, 아빠에게서 유전자 하나를 받아요.</p>
@@ -591,7 +591,7 @@
 
     reset() { state = fresh(); go('home'); },
     homeConfirm() {
-      if (window.confirm('처음 화면으로 돌아갈까요? 지금까지의 수사 기록이 지워져요.')) actions.reset();
+      if (window.confirm('처음 화면으로 돌아갈까요? 지금까지의 탐구 기록이 지워져요.')) actions.reset();
     },
     stayHere() { hideIdle(); }
   };
@@ -646,7 +646,7 @@
   function render() {
     $('#app').innerHTML = screens[state.screen]();
     const inGame = state.screen !== 'home';
-    $('#who').textContent = inGame ? `${state.name} 탐정 · 미션 ${stampCount()}/${MISSIONS.length}` : '';
+    $('#who').textContent = inGame ? `${state.name} 연구원 · 미션 ${stampCount()}/${MISSIONS.length}` : '';
     $('#topActions').innerHTML = inGame
       ? `${state.screen !== 'map' && state.screen !== 'pre' ? '<button data-act="go" data-to="map">지도</button> ' : ''}<button data-act="homeConfirm">처음으로</button>`
       : '';
@@ -678,7 +678,7 @@
     let left = IDLE_COUNTDOWN;
     const draw = () => {
       $('#overlay').innerHTML = `<div class="overlay"><div class="box">
-        <h2>아직 수사 중인가요?</h2>
+        <h2>아직 탐구 중인가요?</h2>
         <div class="count">${left}</div>
         <p class="muted">아무것도 누르지 않으면 처음 화면으로 돌아가요.</p>
         <button class="btn primary" data-act="stayHere">계속할게요</button></div></div>`;

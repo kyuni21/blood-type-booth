@@ -182,7 +182,7 @@ p { margin: 6px 0 12px; }
 .cell.right { border: 2px solid var(--ok); background: var(--ok-bg); }
 .cell.wrong { border: 2px solid var(--bad); background: var(--bad-bg); }
 
-/* 바뀐 아기 사건 */
+/* 바뀐 아기 찾기 */
 .babies { display: flex; flex-wrap: wrap; gap: 12px; }
 .baby {
   min-width: 120px; min-height: 84px; padding: 10px 14px; border-radius: 14px; border: 2px solid var(--line);
