@@ -22,7 +22,10 @@
     { id: 'sim', icon: '🎲', title: '확률 실험실', desc: '가상 아기 1,000명을 태어나게 해 보자' }
   ];
 
-  const PUNNETT_POOL = [['AO', 'BO'], ['AO', 'AO'], ['AB', 'OO'], ['AB', 'AO'], ['BO', 'OO'], ['AA', 'BO'], ['AB', 'AB'], ['BO', 'BO']];
+  const RARE_MAX = 0.25; // 이 확률 이하로 태어나면 축하 연출
+  const RARE_TITLES = ['확률을 뚫고 태어난 인재!', '행운의 아기 탄생!', '확률 따위 문제없다!', '기적의 주인공 등장!'];
+
+  const PUNNETT_POOL =[['AO', 'BO'], ['AO', 'AO'], ['AB', 'OO'], ['AB', 'AO'], ['BO', 'OO'], ['AA', 'BO'], ['AB', 'AB'], ['BO', 'BO']];
   const CYCLE = [null, 'A', 'B', 'AB', 'O'];
 
   let state;
@@ -261,9 +264,11 @@
           ${bars(G.PHENOTYPES.map((p) => ({ type: p, value: total ? M.counts[p] / total : 0, mark: dist[p], label: `${total ? pct(M.counts[p] / total) : '–'} <span class="muted" style="font-size:14px">/ 이론 ${pct(dist[p])}</span>` })))}
           <p class="legend">막대 = 실제로 태어난 비율<span class="mk"></span>검은 선 = 펀넷 사각형으로 계산한 확률</p>
           <div class="actions">
-            ${[1, 10, 100, 1000].map((n) => `<button class="btn ${n === 1000 ? 'primary' : ''}" data-act="simRun" data-n="${n}">+${n.toLocaleString()}명</button>`).join('')}
+            ${[1, 10, 100, 1000].map((n) => `<button class="btn ${n === 1000 ? 'primary' : n === 1 ? 'gold' : ''}" data-act="simRun" data-n="${n}">${n === 1 ? '👶 ' : ''}+${n.toLocaleString()}명</button>`).join('')}
             <button class="btn small" data-act="simReset">다시</button>
+            <button class="btn small" data-act="soundToggle">${S.soundOn() ? '🔊 효과음 켜짐' : '🔇 효과음 꺼짐'}</button>
           </div>
+          <p class="muted" style="font-size:15px">👶 한 명씩 태어나게 해 보세요. 확률 ${pct(RARE_MAX)} 이하로 태어나는 아기가 나오면 깜짝 축하가 있어요!</p>
           ${total >= 100 ? '<div class="feedback ok">아기가 많아질수록 막대가 검은 선에 가까워져요. 이것이 <b>큰 수의 법칙</b>! 확률은 "많이 반복했을 때의 비율"이에요.</div>' : total > 0 ? '<p class="muted">몇 명만 태어나면 들쭉날쭉해요. 100명 이상 태어나게 해 보세요.</p>' : ''}
         </div>
         <div class="card tip">🫘 책상 위 <b>구슬 주머니</b>로도 해 보세요. 엄마 주머니, 아빠 주머니에서 구슬을 하나씩 뽑으면 아기 한 명이에요.</div>
@@ -577,7 +582,11 @@
       M.recent = M.recent.slice(-60);
       if (M.counts.A + M.counts.B + M.counts.AB + M.counts.O >= 100) state.stamps.sim = true;
       render();
+      // 한 명씩 태어날 때만 축하 (한꺼번에 태어나면 매번 울려서 시끄러움)
+      const p = G.childPhenotypeDist(M.g1, M.g2)[M.recent[M.recent.length - 1]];
+      if (n === 1 && p <= RARE_MAX) celebrate(M.recent[M.recent.length - 1], p);
     },
+    soundToggle() { S.setSound(!S.soundOn()); render(); },
     simReset() { state.sim.counts = { A: 0, B: 0, AB: 0, O: 0 }; state.sim.recent = []; render(); },
 
     reset() { state = fresh(); go('home'); },
@@ -586,6 +595,52 @@
     },
     stayHere() { hideIdle(); }
   };
+
+  // ---------- 축하 연출 (효과음 + 꽃가루) ----------
+  let audioCtx = null, fxTimer = null;
+
+  // 도-미-솔-도 팡파르. 소리 파일 없이 합성해서 오프라인에서도 동작
+  function fanfare() {
+    if (!S.soundOn()) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const t = audioCtx.currentTime + i * 0.11, len = i === 3 ? 0.6 : 0.18;
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + len + 0.05);
+      });
+    } catch (e) { /* 소리를 못 내는 환경이면 애니메이션만 */ }
+  }
+
+  function celebrate(type, p) {
+    const colors = ['var(--A)', 'var(--B)', 'var(--AB)', 'var(--O)', 'var(--gold)'];
+    const confetti = Array.from({ length: 40 }, () =>
+      `<span class="confetto" style="left:${Math.random() * 100}%;background:${pick(colors)};animation-duration:${1.6 + Math.random() * 1.2}s;animation-delay:${Math.random() * 0.3}s"></span>`).join('');
+    let fx = $('#fx');
+    if (!fx) {
+      fx = document.createElement('div');
+      fx.id = 'fx';
+      fx.className = 'fx';
+      document.body.appendChild(fx);
+    }
+    fx.innerHTML = `${confetti}
+      <div class="burst">
+        <div class="baby-pop">👶</div>
+        <div class="big">${pick(RARE_TITLES)}</div>
+        <div>${badge(type)} <b>${pct(p)}</b> 확률, ${Math.round(1 / p)}명 중 1명꼴로 태어났어요!</div>
+      </div>`;
+    fanfare();
+    clearTimeout(fxTimer);
+    fxTimer = setTimeout(() => { fx.innerHTML = ''; }, 2800);
+  }
 
   // ---------- 렌더링 ----------
   function render() {

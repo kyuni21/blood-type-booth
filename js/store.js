@@ -49,6 +49,9 @@
     },
     resetWallAll: function () { write('wall', {}); },
 
+    soundOn: function () { return read('sound', true); },
+    setSound: function (on) { write('sound', on); },
+
     pin: function () { return read('pin', '0000'); },
     setPin: function (p) { write('pin', p); }
   };

@@ -239,6 +239,32 @@ p { margin: 6px 0 12px; }
 .overlay .box { background: var(--paper); border-radius: 20px; padding: 28px; max-width: 460px; text-align: center; }
 .overlay .count { font-size: 64px; font-weight: 900; color: var(--navy); }
 
+/* 낮은 확률 출생 축하 — 터치를 막지 않아서 계속 +1명을 누를 수 있음 */
+.fx {
+  position: fixed; inset: 0; z-index: 15; pointer-events: none; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.fx:empty { display: none; }
+.fx .burst {
+  text-align: center; background: rgba(255, 253, 248, .97); border: 4px solid var(--gold);
+  border-radius: 24px; padding: 20px 28px; box-shadow: 0 12px 40px rgba(30, 42, 68, .3);
+  animation: fx-pop .5s cubic-bezier(.2, 1.6, .4, 1) both, fx-out .4s ease 2.3s forwards;
+}
+.fx .big { font-size: 32px; font-weight: 900; color: var(--navy); letter-spacing: -.02em; margin: 4px 0 6px; }
+.fx .baby-pop { font-size: 64px; line-height: 1; animation: fx-wiggle .6s ease-in-out 2; }
+.fx .confetto {
+  position: absolute; top: -24px; width: 10px; height: 16px; border-radius: 2px;
+  animation-name: fx-fall; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes fx-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fx-out { to { transform: scale(.95); opacity: 0; } }
+@keyframes fx-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-15deg) scale(1.1); } 75% { transform: rotate(15deg) scale(1.1); } }
+@keyframes fx-fall { to { transform: translateY(110vh) rotate(720deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .fx .confetto { display: none; }
+  .fx .burst, .fx .baby-pop { animation: fx-out .4s ease 2.3s forwards; }
+}
+
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
 
 @media (max-width: 600px) {
