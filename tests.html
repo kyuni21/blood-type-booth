@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- genetics.js 단위 테스트를 브라우저에서 실행하는 페이지 -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>유전 계산 테스트</title>
+<style>
+  body { font-family: system-ui, sans-serif; padding: 16px; background: #fff; color: #222; }
+  .pass { color: #1a7f37; } .fail { color: #c62828; font-weight: bold; }
+  li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<h1>유전 계산 테스트</h1>
+<p id="summary"></p>
+<ul id="list"></ul>
+<script src="js/genetics.js"></script>
+<script>
+  var G = window.Genetics, results = [];
+  function test(name, fn) {
+    try { fn(); results.push({ name: name, ok: true }); }
+    catch (e) { results.push({ name: name, ok: false, msg: e.message }); }
+  }
+  function eq(actual, expected) {
+    var a = JSON.stringify(actual), e = JSON.stringify(expected);
+    if (a !== e) throw new Error('기대 ' + e + ' / 실제 ' + a);
+  }
+  function near(actual, expected, tol) {
+    if (Math.abs(actual - expected) > (tol || 1e-9)) throw new Error('기대 ' + expected + ' / 실제 ' + actual);
+  }
+
+  test('표현형 판정', function () {
+    eq(['AA', 'AO', 'BB', 'BO', 'AB', 'OO'].map(G.phenotypeOf), ['A', 'A', 'B', 'B', 'AB', 'O']);
+  });
+  test('표현형 → 유전자형 후보', function () {
+    eq(G.genotypesOf('A'), ['AA', 'AO']);
+    eq(G.genotypesOf('AB'), ['AB']);
+    eq(G.genotypesOf('O'), ['OO']);
+  });
+  test('AO × BO → 네 혈액형 각 25%', function () {
+    eq(G.childPhenotypeDist('AO', 'BO'), { A: 0.25, B: 0.25, AB: 0.25, O: 0.25 });
+  });
+  test('AA × OO → 전부 A형', function () {
+    eq(G.childPhenotypeDist('AA', 'OO'), { A: 1, B: 0, AB: 0, O: 0 });
+  });
+  test('AB × AB → A 25, B 25, AB 50', function () {
+    eq(G.childPhenotypeDist('AB', 'AB'), { A: 0.25, B: 0.25, AB: 0.5, O: 0 });
+  });
+  test('펀넷 사각형 칸은 정렬된 유전자형', function () {
+    eq(G.punnett('AO', 'BO').cells, [['AB', 'AO'], ['BO', 'OO']]);
+  });
+  test('표현형 조합으로 가능한 자녀', function () {
+    eq(G.possibleChildPhenotypes('O', 'O'), ['O']);
+    eq(G.possibleChildPhenotypes('A', 'B'), ['A', 'B', 'AB', 'O']);
+    eq(G.possibleChildPhenotypes('AB', 'O'), ['A', 'B']);
+    eq(G.possibleChildPhenotypes('AB', 'AB'), ['A', 'B', 'AB']);
+    eq(G.possibleChildPhenotypes('A', 'A'), ['A', 'O']);
+  });
+  test('역추론: 엄마 A, 아이 O → 아빠는 AB 불가', function () {
+    eq(G.possibleParentPhenotypes('A', 'O'), ['A', 'B', 'O']);
+  });
+  test('역추론: 엄마 O, 아이 AB → 가능한 아빠 없음', function () {
+    eq(G.possibleParentPhenotypes('O', 'AB'), []);
+  });
+  test('내 유전자형 후보: 부모 정보 없으면 전부', function () {
+    eq(G.myGenotypeCandidates('A'), ['AA', 'AO']);
+  });
+  test('내 유전자형 후보: 부모 중 O형이 있으면 AO', function () {
+    eq(G.myGenotypeCandidates('A', 'O', 'A'), ['AO']);
+  });
+  test('내 유전자형 후보: AB×AB 부모의 A형 자녀는 AA', function () {
+    eq(G.myGenotypeCandidates('A', 'AB', 'AB'), ['AA']);
+  });
+  test('내 유전자형 후보: 드문 조합(O×O 부모의 A형)은 빈 배열', function () {
+    eq(G.myGenotypeCandidates('A', 'O', 'O'), []);
+  });
+  test('한국인 분포 재현 (대립유전자 빈도 → 표현형)', function () {
+    var f = G.KOREAN_ALLELES;
+    near(f.A + f.B + f.O, 1);
+    near(f.O * f.O, 0.28, 1e-9);
+    near(f.A * f.A + 2 * f.A * f.O, 0.34, 1e-9);
+    near(f.B * f.B + 2 * f.B * f.O, 0.27, 0.005);
+    near(2 * f.A * f.B, 0.11, 0.005);
+  });
+  test('A형이 AO일 확률 약 80%', function () {
+    near(G.genotypeWeights('A').AO, 0.80, 0.01);
+    near(G.genotypeWeights('A').AA + G.genotypeWeights('A').AO, 1);
+  });
+  test('시뮬레이션 합계와 결정적 입력', function () {
+    var c = G.simulate('AO', 'BO', 1000);
+    eq(c.A + c.B + c.AB + c.O, 1000);
+    eq(G.simulate('AA', 'OO', 50), { A: 50, B: 0, AB: 0, O: 0 });
+    // rand를 0으로 고정하면 항상 첫 번째 대립유전자: A + B → AB
+    eq(G.simulate('AO', 'BO', 3, function () { return 0; }), { A: 0, B: 0, AB: 3, O: 0 });
+  });
+  test('시뮬레이션 10만 명은 이론값에 수렴', function () {
+    var c = G.simulate('AO', 'BO', 100000);
+    ['A', 'B', 'AB', 'O'].forEach(function (p) { near(c[p] / 100000, 0.25, 0.01); });
+  });
+  test('응집 반응 → 혈액형', function () {
+    eq(G.bloodTypeFromReactions({ antiA: true, antiB: false, antiD: true }), { abo: 'A', rh: '+' });
+    eq(G.bloodTypeFromReactions({ antiA: false, antiB: true, antiD: false }), { abo: 'B', rh: '-' });
+    eq(G.bloodTypeFromReactions({ antiA: true, antiB: true, antiD: true }), { abo: 'AB', rh: '+' });
+    eq(G.bloodTypeFromReactions({ antiA: false, antiB: false, antiD: false }), { abo: 'O', rh: '-' });
+  });
+  test('바뀐 아기 사건: A·B·AB·O 하나씩이면 해가 하나', function () {
+    // 아기 순서를 어떻게 섞어도 해는 정확히 하나
+    var orders = [['A', 'B', 'AB', 'O'], ['O', 'AB', 'B', 'A'], ['B', 'O', 'A', 'AB']];
+    orders.forEach(function (babies) {
+      var sols = G.solveCase(babies);
+      eq(sols.length, 1);
+      var assigned = sols[0].map(function (i) { return babies[i]; });
+      eq(assigned, ['O', 'A', 'B', 'AB']); // 김 O, 이 A, 박 B, 최 AB
+    });
+  });
+  test('바뀐 아기 사건: 판정 실수로 같은 혈액형이 겹치면 해 없음', function () {
+    eq(G.solveCase(['A', 'A', 'AB', 'O']).length, 0);
+  });
+
+  var failed = results.filter(function (r) { return !r.ok; });
+  document.getElementById('summary').innerHTML =
+    '<b class="' + (failed.length ? 'fail' : 'pass') + '">' +
+    (results.length - failed.length) + ' / ' + results.length + ' 통과</b>';
+  document.getElementById('list').innerHTML = results.map(function (r) {
+    return '<li class="' + (r.ok ? 'pass' : 'fail') + '">' + (r.ok ? '✔ ' : '✘ ') + r.name +
+      (r.msg ? ' — ' + r.msg : '') + '</li>';
+  }).join('');
+  window.__testResult = { total: results.length, failed: failed };
+</script>
+</body>
+</html>
